@@ -8,3 +8,4 @@ coverage/
 !.env.example
 docusync-architecture.md
 .cursor/plans/docusync-architecture.md
+.cursor/
