@@ -1,0 +1,193 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://docusync.dev/schema/docusync.schema.json",
+  "title": "DocuSync Configuration",
+  "description": "Configuration for DocuSync — local-first documentation sync driven by git diffs, embeddings, and LLM rewrites.",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "$schema": {
+      "type": "string",
+      "description": "JSON Schema URL or relative path (e.g. `./docusync.schema.json`) for editor autocomplete and hover tooltips in VS Code."
+    },
+    "docs": {
+      "type": "object",
+      "description": "Where documentation lives and how draft files are stored.",
+      "additionalProperties": false,
+      "properties": {
+        "roots": {
+          "type": "array",
+          "description": "Directories scanned for markdown documentation to index and update (e.g. `docs`, `wiki`).",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "minItems": 1
+        },
+        "draftsDir": {
+          "type": "string",
+          "description": "Folder where new documentation drafts are written when no existing doc matches a significant code change.",
+          "minLength": 1
+        },
+        "ignore": {
+          "type": "array",
+          "description": "Glob patterns excluded from git diff significance checks (defaults often include `**/*.md` so markdown edits do not re-trigger the pipeline).",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": ["roots", "draftsDir"]
+    },
+    "index": {
+      "type": "object",
+      "description": "Local vector index settings (sqlite-vec + Hugging Face transformers embeddings).",
+      "additionalProperties": false,
+      "properties": {
+        "dbPath": {
+          "type": "string",
+          "description": "Path to the SQLite database storing document chunks and embedding vectors.",
+          "minLength": 1
+        },
+        "embeddingModel": {
+          "type": "string",
+          "description": "Hugging Face model id used for on-device embeddings (default: `Xenova/all-MiniLM-L6-v2`).",
+          "minLength": 1
+        },
+        "chunkMaxTokens": {
+          "type": "integer",
+          "description": "Maximum approximate tokens per markdown chunk when splitting docs for indexing.",
+          "minimum": 64,
+          "maximum": 8192
+        },
+        "topK": {
+          "type": "integer",
+          "description": "Number of nearest neighbor chunks returned per code change during semantic mapping.",
+          "minimum": 1,
+          "maximum": 50
+        },
+        "similarityThreshold": {
+          "type": "number",
+          "description": "Cosine similarity cutoff (0–1). Matches above this threshold trigger **update**; below it may create a **draft** if the change is significant.",
+          "minimum": 0,
+          "maximum": 1
+        }
+      },
+      "required": ["dbPath", "embeddingModel"]
+    },
+    "llm": {
+      "type": "object",
+      "description": "LLM provider used to rewrite or draft markdown (Vercel AI SDK).",
+      "additionalProperties": false,
+      "properties": {
+        "provider": {
+          "type": "string",
+          "description": "Cloud or local LLM backend: `openai`, `anthropic`, or `ollama`.",
+          "enum": ["openai", "anthropic", "ollama"]
+        },
+        "model": {
+          "type": "string",
+          "description": "Model id passed to the provider (e.g. `gpt-4o-mini`, `claude-3-5-haiku-latest`, `llama3.2`).",
+          "minLength": 1
+        },
+        "maxTokens": {
+          "type": "integer",
+          "description": "Maximum tokens for each LLM generation request.",
+          "minimum": 256,
+          "maximum": 128000
+        },
+        "temperature": {
+          "type": "number",
+          "description": "Sampling temperature (0 = deterministic, higher = more creative). Doc updates typically use low values (~0.2).",
+          "minimum": 0,
+          "maximum": 2
+        }
+      },
+      "required": ["provider", "model"]
+    },
+    "ollama": {
+      "type": "object",
+      "description": "Settings when `llm.provider` is `ollama` for fully offline inference.",
+      "additionalProperties": false,
+      "properties": {
+        "baseUrl": {
+          "type": "string",
+          "format": "uri",
+          "description": "Ollama HTTP API base URL (default: `http://localhost:11434`)."
+        }
+      }
+    },
+    "significance": {
+      "type": "object",
+      "description": "Filters which git diffs are large or relevant enough to spend embedding + LLM work on.",
+      "additionalProperties": false,
+      "properties": {
+        "minLinesChanged": {
+          "type": "integer",
+          "description": "Minimum total added+removed lines across the diff before DocuSync runs the pipeline.",
+          "minimum": 0
+        },
+        "minFilesChanged": {
+          "type": "integer",
+          "description": "Minimum number of changed files required to pass the significance filter.",
+          "minimum": 1
+        },
+        "includeGlobs": {
+          "type": "array",
+          "description": "Only consider diffs touching paths matching these globs (e.g. `src/**`).",
+          "items": {
+            "type": "string"
+          }
+        },
+        "excludeGlobs": {
+          "type": "array",
+          "description": "Ignore diffs that only touch paths matching these globs (tests, snapshots, etc.).",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "git": {
+      "type": "object",
+      "description": "Git commit metadata when DocuSync auto-commits documentation in CI.",
+      "additionalProperties": false,
+      "properties": {
+        "commitMessage": {
+          "type": "string",
+          "description": "Commit message template for automated doc updates (often includes `[skip ci]`).",
+          "minLength": 1
+        },
+        "authorName": {
+          "type": "string",
+          "description": "Git author name for automated commits.",
+          "minLength": 1
+        },
+        "authorEmail": {
+          "type": "string",
+          "format": "email",
+          "description": "Git author email for automated commits."
+        }
+      }
+    },
+    "github": {
+      "type": "object",
+      "description": "GitHub Actions / pull request notification behavior.",
+      "additionalProperties": false,
+      "properties": {
+        "commentOnDraft": {
+          "type": "boolean",
+          "description": "Post a PR comment linking to new draft docs when `commentOnDraft` is true."
+        },
+        "commentOnUpdate": {
+          "type": "boolean",
+          "description": "Post a PR comment when existing documentation files are updated in-place."
+        }
+      }
+    },
+    "backup": {
+      "type": "boolean",
+      "description": "When true, write `.bak` copies beside updated markdown files before overwriting."
+    }
+  }
+}

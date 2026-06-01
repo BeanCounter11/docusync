@@ -1,0 +1,60 @@
+{
+  // Point VS Code at the schema for autocomplete and hover docs on every property.
+  "$schema": "./docusync.schema.json",
+
+  // --- Documentation corpus ---
+  "docs": {
+    // Folders to index and search when mapping code changes to markdown.
+    "roots": ["docs"],
+    // New docs land here when no existing page matches (semantic score below threshold).
+    "draftsDir": "docs/drafts",
+    // Globs ignored for significance (keeps markdown-only PRs from re-running the pipeline).
+    "ignore": ["docs/drafts/**", "node_modules/**", "**/*.md"]
+  },
+
+  // --- Local embeddings index (no cloud required for mapping) ---
+  "index": {
+    "dbPath": ".docusync/index.db",
+    "embeddingModel": "Xenova/all-MiniLM-L6-v2",
+    "chunkMaxTokens": 512,
+    "topK": 5,
+    // Raise (e.g. 0.65) for stricter updates; lower for more draft suggestions.
+    "similarityThreshold": 0.55
+  },
+
+  // --- LLM for rewriting markdown (set API keys in env, not in this file) ---
+  "llm": {
+    "provider": "openai",
+    "model": "gpt-4o-mini",
+    "maxTokens": 4096,
+    "temperature": 0.2
+  },
+
+  // --- Offline stack: set llm.provider to "ollama" and run: ollama pull llama3.2 ---
+  "ollama": {
+    "baseUrl": "http://localhost:11434"
+  },
+
+  // --- Skip tiny or irrelevant diffs ---
+  "significance": {
+    "minLinesChanged": 15,
+    "minFilesChanged": 1,
+    "includeGlobs": ["src/**", "lib/**", "packages/**"],
+    "excludeGlobs": ["**/*.test.*", "**/*.spec.*", "**/__tests__/**"]
+  },
+
+  // --- CI auto-commit (GitHub Action) ---
+  "git": {
+    "commitMessage": "docs: auto-update via DocuSync [skip ci]",
+    "authorName": "github-actions[bot]",
+    "authorEmail": "41898282+github-actions[bot]@users.noreply.github.com"
+  },
+
+  "github": {
+    "commentOnDraft": true,
+    "commentOnUpdate": false
+  },
+
+  // Set true to keep .bak files next to updated docs.
+  "backup": false
+}

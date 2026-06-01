@@ -1,0 +1,26 @@
+name: DocuSync
+description: Sync documentation with code changes using local embeddings and LLM
+author: DocuSync Contributors
+branding:
+  icon: book
+  color: blue
+
+inputs:
+  config-path:
+    description: Path to docusync.json
+    required: false
+    default: docusync.json
+  base-ref:
+    description: Base git ref for comparison (defaults to pull_request.base.sha)
+    required: false
+  head-ref:
+    description: Head git ref for comparison (defaults to pull_request.head.sha)
+    required: false
+  dry-run:
+    description: Run without writing or committing documentation changes
+    required: false
+    default: 'false'
+
+runs:
+  using: node20
+  main: dist/index.js

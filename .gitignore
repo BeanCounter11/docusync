@@ -1,0 +1,8 @@
+node_modules/
+dist/
+.docusync/
+*.tsbuildinfo
+coverage/
+.env
+.env.*
+!.env.example
